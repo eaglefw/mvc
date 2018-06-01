@@ -13,7 +13,8 @@
     "minimum-stability": "dev",
     "require": {
 		"php": ">=5.5",
-		"ext-phalcon": "~3.1"
+        "ext-phalcon": ">=3.0",
+        "ext-dom" : ">=2.9"
 	},
     "require-dev": {},
     "autoload": {
