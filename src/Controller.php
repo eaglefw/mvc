@@ -25,7 +25,7 @@ class Controller extends \Phalcon\Mvc\Controller {
 	 * @throws UnknownProcess
 	 */
 
-	public function afterExecuteRoute(Dispatcher $dispatcher) {
+	public function afterExecuteRoute() {
 
 		if(!is_null($this->request->getQuery('process'))) {
 
@@ -35,37 +35,48 @@ class Controller extends \Phalcon\Mvc\Controller {
 				throw new UnknownProcess('Cannot find process with identifier `' . $process .'`.');
 			else {
 
-
 				$this->{$process . 'Process'}();
 
-				if($this->request->isAjax()) {
-
-					// Redraw snippets if request is Ajax
-
-					$view = $this->view;
-
-					$view->start();
-
-					$view->render($dispatcher->getControllerName(), $dispatcher->getActionName());
-
-					$view->finish();
-
-					$this->view->disable();
-
-					foreach($this->toRedraw as $snippetId)
-						$this->redrawedSnippets[$snippetId] = $this->getSnippetContent($snippetId, $view->getContent());
-
-					$this->response->setJsonContent([
-						'eagleProcess' => [
-							'process' => $process,
-							'snippets' => $this->redrawedSnippets
-						]
-					]);
-
-					$this->response->send();
-				}
+				if($this->request->isAjax())
+					$this->sendSnippetsResponse();
 			}
 		}
+
+		if(!is_null($this->request->get('form_uid')) && $this->request->isAjax())
+			$this->sendSnippetsResponse();
+
+	}
+
+	private function sendSnippetsResponse() {
+
+		// Redraw snippets if request is Ajax
+
+		$view = $this->view;
+
+		$view->start();
+
+		$view->render($this->dispatcher->getControllerName(), $this->dispatcher->getActionName());
+
+		$view->finish();
+
+		$this->view->disable();
+
+		foreach($this->toRedraw as $snippetId)
+			$this->redrawedSnippets[$snippetId] = $this->getSnippetContent($snippetId, $view->getContent());
+
+		$this->response->setJsonContent([
+			'eagleProcess' => [
+				'snippets' => $this->redrawedSnippets
+			],
+			'data' => [
+				'post' => $_POST,
+				'get' => $_GET,
+				'request' => $_REQUEST
+			]
+		]);
+
+		$this->response->send();
+
 	}
 
 	/**
@@ -79,18 +90,17 @@ class Controller extends \Phalcon\Mvc\Controller {
 
 	protected function getSnippetContent($snippetId, $actionContent) {
 
+		$content = false;
+
 		$doc = new \DOMDocument();
 		@$doc->loadHTML('<?xml encoding="utf-8" ?>' . $actionContent);
 
 		$finder = new \DOMXPath($doc);
-		$spanner = $finder->query('//*[contains(@id, \'snippet-' . $snippetId . '\')]');
 
-		foreach ($spanner as $entry) {
+		foreach($finder->evaluate('//div[@id="snippet-' . $snippetId . '"]/node()') as $childNode)
+			$content .= $doc->saveHtml($childNode);
 
-			return $entry->nodeValue;
-		}
-
-		return false;
+		return $content;
 	}
 
 	/**

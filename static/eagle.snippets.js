@@ -1,7 +1,12 @@
 
 if (!window.jQuery)
     console.error('jQuery must be present to make Eagle snippets work.');
+
 else {
+
+    /**
+     * Process AJAX with click events
+     */
 
     $(document).on('click', '[data-process]', function(e) {
 
@@ -26,25 +31,74 @@ else {
         })
         .done(function(response) {
 
-            if(response.eagleProcess !== undefined) {
-
-                var snippets = response.eagleProcess.snippets,
-                    snippetKeys = Object.keys(response.eagleProcess.snippets);
-
-                snippetKeys.forEach(function(snippetId) {
-
-                    var snippetContent = snippets[snippetId],
-                        snippetDom = $('#snippet-' + snippetId);
-
-                    if(snippetDom.length > 0) {
-
-                        snippetDom.html(snippetContent);
-                    }
-                });
-            }
+            processResponse(response);
         });
 
     });
+
+    /**
+     * Processing form with AJAX request
+     */
+
+    $('form.ajax').submit(function(e) {
+
+        var form = $(this),
+            action = window.location,
+            method = 'GET';
+
+        if(form.attr('method') !== '' && form.attr('method') !== undefined)
+            method = form.attr('method');
+
+        if(form.attr('action') !== '' && form.attr('action') !== undefined)
+            action = form.attr('action');
+
+        e.preventDefault();
+
+        $.ajax({
+            url: action,
+            method: method,
+            data: form.serialize()
+        })
+        .done(function(response) {
+
+            processResponse(response);
+
+        }).fail(function(error) {
+
+            console.log(error);
+
+        }).complete(function(res) {
+
+            console.log(res);
+
+        });
+
+    });
+
+    function processResponse(response) {
+
+        console.log(response);
+
+        if(response.eagleProcess !== undefined) {
+
+            var snippets = response.eagleProcess.snippets,
+                snippetKeys = Object.keys(response.eagleProcess.snippets);
+
+            snippetKeys.forEach(function(snippetId) {
+
+                var snippetContent = snippets[snippetId],
+                    snippetDom = $('#snippet-' + snippetId);
+
+                console.log(snippetContent);
+
+                if(snippetDom.length > 0) {
+
+                    snippetDom.html(snippetContent);
+                }
+            });
+        }
+
+    }
 
     /**
      * Number of GET parameters
